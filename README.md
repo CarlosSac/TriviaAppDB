@@ -1,26 +1,27 @@
-# Project 3 - *CS Trivia*
+# Project 4 - *Trivia DB*
 
 Submitted by: **Carlos Sac**
 
-**CS Trivia** is an app that asks a series of random multiple-choice questions about computer science.
+**Trivia DB** is an app that gets trivia questions from the Open Trivia DB API.
 
-Time spent: **5** hours spent in total
+Time spent: **4** hours spent in total
 
 ## Required Features
 
 The following **required** functionality is completed:
 
-- [x] User can view the current question and 4 different answers
-- [x] User can view the next question after tapping an answer
-- [x] User can answer at least 3 different questions
+- [x] User can view and answer at least 5 trivia questions.
+- [x] App retrieves question data from the Open Trivia Database API.
+- [x] Fetch a different set of questions if the user indicates they would like to reset the game.
+- [x] Users can see score after submitting all questions.
+- [x] True or False questions only have two options.
 
 
 The following **optional** features are implemented:
 
-- [x] User can use the vertical orientation of the app on any device
-- [x] User can track the question they are on and how many questions are left
-- [x] User can see how many questions they got correct after answering all questions
-- [x] User should be able to restart the game after they've finished answering all questions
+  
+- [ ] Allow the user to choose a specific category of questions.
+- [ ] Provide the user feedback on whether each question was correct before navigating to the next.
 
 The following **additional** features are implemented:
 
@@ -28,18 +29,10 @@ The following **additional** features are implemented:
 
 ## Video Walkthrough
 
-iPhone 16
-
-<img src='demo.gif' title='Video Walkthrough' alt='Video Walkthrough' />
-
-
-iPhone SE 3
-
-<img src='demoSE.gif' title='Video Walkthrough' alt='Video Walkthrough' />
+<img src='demoDB.gif' title='Video Walkthrough' alt='Video Walkthrough' />
 
 ## Notes
 
-Demo added for the iPhone SE 3 to show a different device.
 
 ## License
 
