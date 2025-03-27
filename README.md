@@ -25,8 +25,8 @@ The following **optional** features are implemented:
 
 The following **additional** features are implemented:
 
-- [ ] List anything else that you can get done to improve the app functionality!
-
+- [x] Added loading animation when restarting the trivia questions
+      
 ## Video Walkthrough
 
 <img src='demoDB.gif' title='Video Walkthrough' alt='Video Walkthrough' />
