@@ -1,10 +1,37 @@
 
 import UIKit
 
+extension String {
+    var htmlUnescape: String {
+        let data = Data(self.utf8)
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.html,
+            .characterEncoding: String.Encoding.utf8.rawValue
+        ]
+        let unescapedString = try? NSAttributedString(data: data, options: options, documentAttributes: nil).string
+        return unescapedString ?? self
+    }
+}
+
 struct TriviaQuestion {
+    let type: String
     let question: String
     let answers: [String]
     let correctAnswer: Int
+}
+
+struct TriviaAPIResponse: Codable {
+    let response_code: Int
+    let results: [TriviaAPIQuestion]
+}
+
+struct TriviaAPIQuestion: Codable {
+    let type: String
+    let difficulty: String
+    let category: String
+    let question: String
+    let correct_answer: String
+    let incorrect_answers: [String]
 }
 
 class TriviaViewController: UIViewController {
@@ -16,39 +43,93 @@ class TriviaViewController: UIViewController {
     @IBOutlet weak var answerButton3: UIButton!
     @IBOutlet weak var answerButton4: UIButton!
     
-    var questions: [TriviaQuestion] = [
-        TriviaQuestion(question: "What does HTML stand for?", answers: ["Hyperlink Markup Language", "Hyper Text Machine Language", "Hyper Text Markup Language", "Hungry Tigers Make Lasagna" ], correctAnswer: 2),
-        TriviaQuestion(question: "What is the name of the most famous version control system used by programmers?", answers: ["Git", "Fit", "Bit", "FitBit"], correctAnswer:0),
-        TriviaQuestion(question: "In JavaScript, what keyword is used to declare a variable?", answers:["let", "var", "const", "All of the above"], correctAnswer: 3),
-        TriviaQuestion(question: "What do programmers use to write and edit code?", answers: ["Notepad", "Integrated Development Environment (IDE)", "Text Editor", "A Magic Typewriter"], correctAnswer: 1),
-        TriviaQuestion(question: "What does CSS stand for?", answers: ["Cascading Style Sheets", "Coding Super Skills", "Computer Style System", "Cats Stealing Sandwiches"], correctAnswer: 0),
-        TriviaQuestion(question: "Which animal is the mascot for the Python programming language?", answers: ["Python snake", "Anaconda", "Cobra", "A squirrel wearing glasses"], correctAnswer: 0),
-        TriviaQuestion(question: "What is the main purpose of a loop in programming?", answers: ["To repeat a block of code", "To confuse beginners", "To make programs longer", "To hypnotize your computer"], correctAnswer: 0),
-        TriviaQuestion(question: "What’s the name of the first computer programmer?", answers: ["Alan Turing", "Ada Lovelace", "Grace Hopper", "Tony Stark"], correctAnswer: 1),
-        TriviaQuestion(question: "What does “bug” refer to in programming?", answers: ["An insect in your room", "An error in the code", "A feature that doesn’t work", "A mischievous gremlin living in your computer"], correctAnswer: 1)
-    ]
+    // Add these functions after your existing properties
+    private let loadingIndicator = UIActivityIndicatorView(style: .large)
+    
+    private func setupLoadingIndicator() {
+        loadingIndicator.center = view.center
+        loadingIndicator.hidesWhenStopped = true
+        view.addSubview(loadingIndicator)
+    }
+    
+    private func showLoading() {
+        loadingIndicator.startAnimating()
+        questionNum.text = ""
+        answerLabel.text = ""
+        answerButton1.setTitle("", for: .normal)
+        answerButton2.setTitle("", for: .normal)
+        answerButton3.setTitle("", for: .normal)
+        answerButton4.setTitle("", for: .normal)
+        [questionNum, answerLabel, answerButton1, answerButton2, answerButton3, answerButton4].forEach { $0?.isHidden = true }
+    }
+    
+    private func hideLoading() {
+        loadingIndicator.stopAnimating()
+        [questionNum, answerLabel, answerButton1, answerButton2].forEach { $0?.isHidden = false }
+    }
+    //
     
     
-    
-
+    var questions: [TriviaQuestion] = []
     var selectedQuestions: [TriviaQuestion] = []
     var currentQuestionIndex = 0
     var score = 0
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        selectedQuestions = Array(questions.shuffled().prefix(3))
-        displayQuestion()
+        setupLoadingIndicator()
+        fetchTriviaQuestions()
+    }
+
+  
+    func fetchTriviaQuestions() {
+        showLoading()
+        guard let url = URL(string: "https://opentdb.com/api.php?amount=5&difficulty=easy") else { return }
+
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            guard let data = data, error == nil else { return }
+
+            do {
+                let apiResponse = try JSONDecoder().decode(TriviaAPIResponse.self, from: data)
+                self.questions = apiResponse.results.map { apiQuestion in
+                    let allAnswers = apiQuestion.incorrect_answers + [apiQuestion.correct_answer]
+                    let shuffledAnswers = allAnswers.shuffled()
+                    let correctIndex = shuffledAnswers.firstIndex(of: apiQuestion.correct_answer) ?? 0
+                    
+                    return TriviaQuestion(type: apiQuestion.type, question: apiQuestion.question.htmlUnescape, answers: shuffledAnswers.map { $0.htmlUnescape }, correctAnswer: correctIndex)
+                }
+                DispatchQueue.main.async {
+                    self.currentQuestionIndex = 0
+                    self.selectedQuestions = Array(self.questions.shuffled().prefix(5))
+                    self.displayQuestion()
+                    self.hideLoading()
+                }
+            } catch {
+                print("Failed to decode JSON: \(error)")
+            }
+        }
+
+        task.resume()
     }
 
     func displayQuestion() {
         let currentQuestion = selectedQuestions[currentQuestionIndex]
         answerLabel.text = currentQuestion.question
-        questionNum.text = "Question \(currentQuestionIndex + 1) of 3"
-        answerButton1.setTitle(currentQuestion.answers[0], for: .normal)
-        answerButton2.setTitle(currentQuestion.answers[1], for: .normal)
-        answerButton3.setTitle(currentQuestion.answers[2], for: .normal)
-        answerButton4.setTitle(currentQuestion.answers[3], for: .normal)
+        questionNum.text = "Question \(currentQuestionIndex + 1) of 5"
+
+        if currentQuestion.type == "boolean" {
+            answerButton1.setTitle(currentQuestion.answers[0], for: .normal)
+            answerButton2.setTitle(currentQuestion.answers[1], for: .normal)
+            answerButton3.isHidden = true
+            answerButton4.isHidden = true
+        } else {
+            answerButton1.setTitle(currentQuestion.answers[0], for: .normal)
+            answerButton2.setTitle(currentQuestion.answers[1], for: .normal)
+            answerButton3.setTitle(currentQuestion.answers[2], for: .normal)
+            answerButton4.setTitle(currentQuestion.answers[3], for: .normal)
+            answerButton3.isHidden = false
+            answerButton4.isHidden = false
+        }
     }
 
     @IBAction func didTapAnsButton1(_ sender: UIButton) {
@@ -81,7 +162,7 @@ class TriviaViewController: UIViewController {
     }
 
     func showFinalScore() {
-        let alert = UIAlertController(title: "Quiz Finished", message: "Your score is \(score)/3", preferredStyle: .alert)
+        let alert = UIAlertController(title: "Quiz Finished", message: "Your score is \(score)/5", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Restart", style: .default, handler: { _ in
             self.restartQuiz()
         }))
@@ -89,9 +170,16 @@ class TriviaViewController: UIViewController {
     }
 
     func restartQuiz() {
-        selectedQuestions = Array(questions.shuffled().prefix(3))
-        currentQuestionIndex = 0
+        
+        
+        
+        
+        //selectedQuestions = Array(questions.shuffled().prefix(5))
+        //currentQuestionIndex = 0
         score = 0
-        displayQuestion()
+        fetchTriviaQuestions()
+        //displayQuestion()
     }
+    
+    
 }
